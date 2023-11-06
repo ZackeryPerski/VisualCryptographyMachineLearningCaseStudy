@@ -1,0 +1,2 @@
+#Ignore all .json files within the image preparer. Users are expected to run their own.
+**/Scripts/*.json
