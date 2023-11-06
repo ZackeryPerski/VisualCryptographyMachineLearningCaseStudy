@@ -47,8 +47,20 @@ def create_overlays(s2_prime, s1, x_offset, y_offset):
     invalid_y_offset.remove(y_offset)
     invalid_y_offset = random.choice(invalid_y_offset)
     #initialize the working copies.
-    valid_overlay = s2_prime.copy()
-    invalid_overlay = s2_prime.copy()
+    valid_overlay = []
+    invalid_overlay = []
+    #force deep copy construction argh!
+    for i in range(len(s2_prime)):
+        row = []
+        for j in range(len(s2_prime[0])):
+            row.append(s2_prime[i][j])
+        valid_overlay.append(row)
+    for i in range(len(s2_prime)):
+        row = []
+        for j in range(len(s2_prime[0])):
+            row.append(s2_prime[i][j])
+        invalid_overlay.append(row)
+
     #overlays are made by pixel wise xoring. Black pulls down.
     for i in range(len(s1)):
         for j in range(len(s1[0])):
@@ -73,7 +85,7 @@ def produce_encrypted_shares(image):
         s2_row2 = []
         #in 2x2, there are always 2 pixels filled. A black pixel is represented by the 2 shares having complementary sets of 0.
         # 0 0  |  1 1 |  0 1  |  1 0  |  1 0  |  0 1
-        # 1 1  |  0 0 |  1 0  |  0 1  |  1 0  |  0 1  
+        # 1 1  |  0 0 |  1 0  |  0 1  |  1 0  |  0 1
         for pixel in row:
             pattern_top, pattern_bottom = pattern_generator()
             pixel_tl, pixel_tr = pattern_top
@@ -82,7 +94,7 @@ def produce_encrypted_shares(image):
             s1_row1.append(pixel_tr)
             s1_row2.append(pixel_bl)
             s1_row2.append(pixel_br)
-            
+
             if pixel == 1: #white #On white, the pixel pattern on s2 is the same as s1.
                 s2_row1.append(pixel_tl)
                 s2_row1.append(pixel_tr)
@@ -152,8 +164,7 @@ for image in train_images:
     #create two samples for training. One valid overlay, one invalid.
     valid_overlay, invalid_overlay = create_overlays(s2_prime, s1, x_offset, y_offset)
 
-    #TODO use pyplot to double check that overlays were generated correctly.
-    #input("overlays generated.")
+    #Used for showcasing what's being generated.
     plt.matshow(invalid_overlay)
     plt.matshow(valid_overlay)
     plt.show()
