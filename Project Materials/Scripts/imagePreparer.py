@@ -1,4 +1,5 @@
 import os, glob
+from random import Random
 #from PIL import Image
 from matplotlib import image
 from matplotlib import pyplot as plt
@@ -6,6 +7,7 @@ import numpy as np
 import urllib.request
 import gzip
 import struct
+import json
 
 np.random.seed(42)
 images_url = "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
@@ -15,10 +17,7 @@ labels_url = "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
 pathPrimeShares = '../Images/Prime Shares'
 pathShares = '../Images/Shares'
 
-'''
-def one_hot(labels,num_classes):
-    return np.eye(num_classes)[labels]
-'''
+
     
 def load_mnist(images_url, labels_url):
     with urllib.request.urlopen(images_url) as f_images, gzip.GzipFile(fileobj=f_images) as f_images_gzip:
@@ -37,22 +36,27 @@ def pattern_generator():
     choice = np.random.randint(6)
     return pixels_top[choice], pixels_bottom[choice]
 
-#pixels are represented currently as RGB format with 0,0,0 as black. or 1,1,1 as white. First part of preparation will be to convert to smaller more meaningful data.
-#https://stackoverflow.com/questions/18262293/how-to-open-every-file-in-a-folder
+def create_overlays(s2_prime, s1, x_offset, y_offset):
+    #Extra gouda cheese here
+    invalid_x_offset = Random.choice(list(range(7)).remove(x_offset)) #for clarity, this is any other number than x_offset.
+    invalid_y_offset = Random.choice(list(range(7)).remove(y_offset)) #for clarity, this is any other number than y_offset.
+    #initialize the working copies.
+    valid_overlay = s2_prime.copy()
+    invalid_overlay = s2_prime.copy()
+    #overlays are made by pixel wise xoring. Black pulls down.
+    for i in range(len(s1)):
+        for j in range(len(s1[0])):
+            if(valid_overlay[i+2*x_offset][j+2*y_offset]==0) or (s1[i][j]==0):
+                valid_overlay[i+2*x_offset][j+2*y_offset] = 0
+            if(invalid_overlay[i+2*invalid_x_offset][j+2*invalid_y_offset]==0) or (s1[i][j]==0):
+                invalid_overlay[i+2*invalid_x_offset][j+2*invalid_y_offset] = 0
+    #overlays generated.
+    return valid_overlay, invalid_overlay
 
-#preparations
-images, labels = load_mnist(images_url,labels_url)
-train_images = images[:50000]/255.0 #normalize the images
-test_images = images[50000:]/255.0 #normalize the images
 
-for image in train_images:
-    converted_image = np.array(image)#convert to np.array object.
-    converted_image = np.ceil(converted_image)
-    converted_image = converted_image.reshape(-1,28)#reshape mnist image back into a matrix for conversion.
-    input(converted_image.shape)
-    input(str(converted_image))
+def produce_encrypted_shares(image):
     s1, s2 = [],[]
-    for row in converted_image:
+    for row in image:
         #when encoding the images, we'll use a simple 1 -> 2x2 cipher.
         s1_row1 = []
         s1_row2 = []
@@ -84,17 +88,113 @@ for image in train_images:
         s1.append(s1_row2)
         s2.append(s2_row1)
         s2.append(s2_row2)
-    
-    print(s1)
-    s1 = np.array(s1)
-    print(s1.shape)
-    input("Waiting. S1 printed.")
-    print(s2)
-    s2 = np.array(s2)
-    print(s2.shape)
-    input("Waiting. S2 printed.")
-    
+    return s1, s2
 
+def produce_s2_prime(image_share):
+    s2_prime = []
+    for i in range(35):
+        row1 = []
+        row2 = []
+        for j in range(35):
+            pattern_top, pattern_bottom = pattern_generator()
+            pixel_tl, pixel_tr = pattern_top
+            pixel_bl, pixel_br = pattern_bottom
+            row1.append(pixel_tl)
+            row1.append(pixel_tr)
+            row2.append(pixel_bl)
+            row2.append(pixel_br)
+        s2_prime.append(row1)
+        s2_prime.append(row2)
+    #s2_prime background is generated. time to overlay s2 properly.
+    #s2_prime is 70x70. s2 is 56x56. = 14x14 difference. valid movements however means that this is actually 7x7.
+    #Therefore we generate two offset numbers, from 0-7(exclusive.)
+    x_offset = np.random.randint(7)
+    y_offset = np.random.randint(7)
+
+    #imprint s2 onto s2_prime to actually finish s2_prime. 
+    for i in range(len(image_share)):
+        for j in range(len(image_share[0])):
+            s2_prime[i+2*x_offset][j+2*y_offset] = image_share[i][j]
+    
+    return s2_prime, x_offset, y_offset
+#pixels are represented currently as RGB format with 0,0,0 as black. or 1,1,1 as white. First part of preparation will be to convert to smaller more meaningful data.
+#https://stackoverflow.com/questions/18262293/how-to-open-every-file-in-a-folder
+
+#preparations
+images, labels = load_mnist(images_url,labels_url)
+train_images = images[:50000]/255.0 #normalize the images
+test_images = images[50000:]/255.0 #normalize the images
+
+imageCount = 0
+training_dict = {}
+test_dict = {}
+
+
+for image in train_images:
+    converted_image = np.array(image)#convert to np.array object.
+    converted_image = np.ceil(converted_image)
+    converted_image = converted_image.reshape(-1,28)#reshape mnist image back into a matrix for conversion.
+    s1, s2 = produce_encrypted_shares(converted_image)
+    #S1,S2 generated. Time to create the S2' that hides S2. Not optimized, but ease over speed at the moment.
+    s2_prime, x_offset, y_offset = produce_s2_prime(s2)
+    
+    #create two samples for training. One valid overlay, one invalid.
+    valid_overlay, invalid_overlay = create_overlays(s2_prime, s1, x_offset, y_offset)
+
+    #TODO use pyplot to double check that overlays were generated correctly.
+    input("overlays generated.")
+    #now that all manipulation is over, re-flatten the matrix.
+    valid_overlay = np.array(valid_overlay).flatten()
+    invalid_overlay = np.array(invalid_overlay).flatten()
+    #export json. Choose randomly if correct overlay or incorrect is saved first to prevent true/false patterning in the data.
+    if(np.random.randint(2)==0):
+        training_dict["image_"+str(imageCount)] = valid_overlay
+        training_dict["label_"+str(imageCount)] = [1,0] #hot encode true.
+        imageCount+=1
+        training_dict["image_"+str(imageCount)] = invalid_overlay
+        training_dict["label_"+str(imageCount)] = [0,1] #hot encode false.
+        imageCount+=1
+    else:
+        training_dict["image_"+str(imageCount)] = invalid_overlay
+        training_dict["label_"+str(imageCount)] = [0,1] #hot encode false.
+        imageCount+=1
+        training_dict["image_"+str(imageCount)] = valid_overlay
+        training_dict["label_"+str(imageCount)] = [1,0] #hot encode true.
+        imageCount+=1
+    
+#at this point training images and labels have been produced.
+#time to create testing images and labels.
+imageCount = 0
+
+for image in test_images:
+    converted_image = np.array(image)#convert to np.array object.
+    converted_image = np.ceil(converted_image)
+    converted_image = converted_image.reshape(-1,28)#reshape mnist image back into a matrix for conversion.
+    s1, s2 = produce_encrypted_shares(converted_image)
+    #S1,S2 generated. Time to create the S2' that hides S2. Not optimized, but ease over speed at the moment.
+    s2_prime, x_offset, y_offset = produce_s2_prime(s2)
+    
+    #create two samples for testing. One valid overlay, one invalid.
+    valid_overlay, invalid_overlay = create_overlays(s2_prime, s1, x_offset, y_offset)
+
+    #now that all manipulation is over, re-flatten the matrix.
+    valid_overlay = np.array(valid_overlay).flatten()
+    invalid_overlay = np.array(invalid_overlay).flatten()
+    #decide which one to store in testing. only using one!
+    if(np.random.randint(2)==0):
+        test_dict["image_"+str(imageCount)] = valid_overlay
+        test_dict["label_"+str(imageCount)] = [1,0] #hot encode true.
+        imageCount+=1
+    else:
+        test_dict["image_"+str(imageCount)] = invalid_overlay
+        test_dict["label_"+str(imageCount)] = [0,1] #hot encode false.
+        imageCount+=1
+
+with open('training.json','w', encoding='utf-8') as f1:
+    json.dump(training_dict,f1, ensure_ascii=False, indent=4)
+
+with open('testing.json','w',encoding='utf-8') as f2:
+    json.dump(test_dict,f1,ensure_ascii=False,indent=4)
 
 
                 
