@@ -1,5 +1,5 @@
 import os, glob
-from random import Random
+import random
 #from PIL import Image
 from matplotlib import image
 from matplotlib import pyplot as plt
@@ -9,13 +9,14 @@ import gzip
 import struct
 import json
 
+
 np.random.seed(42)
 images_url = "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
 labels_url = "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
 
 #pathSouorce = '../Images/BW_Samples'
-pathPrimeShares = '../Images/Prime Shares'
-pathShares = '../Images/Shares'
+#pathPrimeShares = '../Images/Prime Shares'
+#pathShares = '../Images/Shares'
 
 
     
@@ -38,18 +39,26 @@ def pattern_generator():
 
 def create_overlays(s2_prime, s1, x_offset, y_offset):
     #Extra gouda cheese here
-    invalid_x_offset = Random.choice(list(range(7)).remove(x_offset)) #for clarity, this is any other number than x_offset.
-    invalid_y_offset = Random.choice(list(range(7)).remove(y_offset)) #for clarity, this is any other number than y_offset.
+    invalid_x_offset = list(range(7))
+    invalid_x_offset.remove(x_offset)
+    invalid_x_offset = random.choice(invalid_x_offset)
+
+    invalid_y_offset = list(range(7))
+    invalid_y_offset.remove(y_offset)
+    invalid_y_offset = random.choice(invalid_y_offset)
     #initialize the working copies.
     valid_overlay = s2_prime.copy()
     invalid_overlay = s2_prime.copy()
     #overlays are made by pixel wise xoring. Black pulls down.
     for i in range(len(s1)):
         for j in range(len(s1[0])):
-            if(valid_overlay[i+2*x_offset][j+2*y_offset]==0) or (s1[i][j]==0):
-                valid_overlay[i+2*x_offset][j+2*y_offset] = 0
-            if(invalid_overlay[i+2*invalid_x_offset][j+2*invalid_y_offset]==0) or (s1[i][j]==0):
-                invalid_overlay[i+2*invalid_x_offset][j+2*invalid_y_offset] = 0
+            pos_x_valid = i+2*x_offset
+            pos_y_valid = j+2*y_offset
+            pos_x_invalid = i+2*invalid_x_offset
+            pos_y_invalid = j+2*invalid_y_offset
+            if(s1[i][j]==0):
+                valid_overlay[pos_x_valid][pos_y_valid] = 0
+                invalid_overlay[pos_x_invalid][pos_y_invalid] = 0
     #overlays generated.
     return valid_overlay, invalid_overlay
 
@@ -126,8 +135,10 @@ train_images = images[:50000]/255.0 #normalize the images
 test_images = images[50000:]/255.0 #normalize the images
 
 imageCount = 0
-training_dict = {}
-test_dict = {}
+training_dict_data = {}
+training_dict_labels = {}
+test_dict_data = {}
+test_dict_labels = {}
 
 
 for image in train_images:
@@ -142,25 +153,35 @@ for image in train_images:
     valid_overlay, invalid_overlay = create_overlays(s2_prime, s1, x_offset, y_offset)
 
     #TODO use pyplot to double check that overlays were generated correctly.
-    input("overlays generated.")
+    #input("overlays generated.")
+    plt.matshow(invalid_overlay)
+    plt.matshow(valid_overlay)
+    plt.show()
+
+
     #now that all manipulation is over, re-flatten the matrix.
     valid_overlay = np.array(valid_overlay).flatten()
     invalid_overlay = np.array(invalid_overlay).flatten()
+    #print("Shape of valid_overlay:",valid_overlay.shape)
+    #print("Shape of invalid_overlay:",invalid_overlay.shape)
+    #input()
+
     #export json. Choose randomly if correct overlay or incorrect is saved first to prevent true/false patterning in the data.
     if(np.random.randint(2)==0):
-        training_dict["image_"+str(imageCount)] = valid_overlay
-        training_dict["label_"+str(imageCount)] = [1,0] #hot encode true.
+        training_dict_data["image_"+str(imageCount)] = valid_overlay.tolist()
+        training_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
         imageCount+=1
-        training_dict["image_"+str(imageCount)] = invalid_overlay
-        training_dict["label_"+str(imageCount)] = [0,1] #hot encode false.
+        training_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
+        training_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
         imageCount+=1
     else:
-        training_dict["image_"+str(imageCount)] = invalid_overlay
-        training_dict["label_"+str(imageCount)] = [0,1] #hot encode false.
+        training_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
+        training_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
         imageCount+=1
-        training_dict["image_"+str(imageCount)] = valid_overlay
-        training_dict["label_"+str(imageCount)] = [1,0] #hot encode true.
+        training_dict_data["image_"+str(imageCount)] = valid_overlay.tolist()
+        training_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
         imageCount+=1
+    print(imageCount,"Images produced.")
     
 #at this point training images and labels have been produced.
 #time to create testing images and labels.
@@ -182,19 +203,26 @@ for image in test_images:
     invalid_overlay = np.array(invalid_overlay).flatten()
     #decide which one to store in testing. only using one!
     if(np.random.randint(2)==0):
-        test_dict["image_"+str(imageCount)] = valid_overlay
-        test_dict["label_"+str(imageCount)] = [1,0] #hot encode true.
+        test_dict_data["image_"+str(imageCount)] = valid_overlay.tolist()
+        test_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
         imageCount+=1
     else:
-        test_dict["image_"+str(imageCount)] = invalid_overlay
-        test_dict["label_"+str(imageCount)] = [0,1] #hot encode false.
+        test_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
+        test_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
         imageCount+=1
+    print(imageCount,"Images produced.")
 
-with open('training.json','w', encoding='utf-8') as f1:
-    json.dump(training_dict,f1, ensure_ascii=False, indent=4)
+with open('training_data.json','w', encoding='utf-8') as f1d:
+    json.dump(training_dict_data,f1d, ensure_ascii=False, indent=4)
 
-with open('testing.json','w',encoding='utf-8') as f2:
-    json.dump(test_dict,f1,ensure_ascii=False,indent=4)
+with open('training_labels.json', 'w', encoding='utf-8') as f1l:
+    json.dump(training_dict_labels,f1l, ensure_ascii=False, indent=4)
+
+with open('testing_data.json','w',encoding='utf-8') as f2d:
+    json.dump(test_dict_data,f2d,ensure_ascii=False,indent=4)
+
+with open('testing_labels.json', 'w', encoding='utf-8') as f2l:
+    json.dump(test_dict_labels,f2l, ensure_ascii=False, indent=4)
 
 
                 
