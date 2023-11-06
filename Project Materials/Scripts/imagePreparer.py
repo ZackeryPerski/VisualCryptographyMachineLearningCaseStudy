@@ -165,10 +165,11 @@ for image in train_images:
     valid_overlay, invalid_overlay = create_overlays(s2_prime, s1, x_offset, y_offset)
 
     #Used for showcasing what's being generated.
+    '''
     plt.matshow(invalid_overlay)
     plt.matshow(valid_overlay)
     plt.show()
-
+    '''
 
     #now that all manipulation is over, re-flatten the matrix.
     valid_overlay = np.array(valid_overlay).flatten()
@@ -223,19 +224,25 @@ for image in test_images:
         imageCount+=1
     print(imageCount,"Images produced.")
 
+print("Dumping files. This will take some time.")
+
 with open('training_data.json','w', encoding='utf-8') as f1d:
     json.dump(training_dict_data,f1d, ensure_ascii=False, indent=4)
+print('Training data successfully dumped.')
 
 with open('training_labels.json', 'w', encoding='utf-8') as f1l:
     json.dump(training_dict_labels,f1l, ensure_ascii=False, indent=4)
+print('Training labels successfully dumped.')
 
 with open('testing_data.json','w',encoding='utf-8') as f2d:
     json.dump(test_dict_data,f2d,ensure_ascii=False,indent=4)
+print('Testing data successfully dumped.')
 
 with open('testing_labels.json', 'w', encoding='utf-8') as f2l:
     json.dump(test_dict_labels,f2l, ensure_ascii=False, indent=4)
+print('Testing labels successfully dumped.')
 
-
+print("All files dumped.")
                 
                 
                 
