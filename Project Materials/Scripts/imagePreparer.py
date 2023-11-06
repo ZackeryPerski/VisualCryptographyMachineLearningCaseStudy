@@ -3,11 +3,33 @@ import os, glob
 from matplotlib import image
 from matplotlib import pyplot as plt
 import numpy as np
+import urllib.request
+import gzip
+import struct
 
 np.random.seed(42)
-pathSouorce = '../Images/BW_Samples'
+images_url = "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
+labels_url = "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
+
+#pathSouorce = '../Images/BW_Samples'
 pathPrimeShares = '../Images/Prime Shares'
 pathShares = '../Images/Shares'
+
+'''
+def one_hot(labels,num_classes):
+    return np.eye(num_classes)[labels]
+'''
+    
+def load_mnist(images_url, labels_url):
+    with urllib.request.urlopen(images_url) as f_images, gzip.GzipFile(fileobj=f_images) as f_images_gzip:
+        magic, num, rows, cols = struct.unpack(">IIII",f_images_gzip.read(16))
+        images = np.frombuffer(f_images_gzip.read(), dtype=np.uint8).reshape(num,784)
+
+    with urllib.request.urlopen(labels_url) as f_labels, gzip.GzipFile(fileobj=f_labels) as f_labels_gzip:
+        magic,num = struct.unpack(">II", f_labels_gzip.read(8))
+        labels = np.frombuffer(f_labels_gzip.read(),dtype=np.uint8)
+
+    return images,labels
 
 def pattern_generator():
     pixels_top =    [(0,0),(1,1),(1,0),(0,1),(0,1),(1,0)]
@@ -17,29 +39,20 @@ def pattern_generator():
 
 #pixels are represented currently as RGB format with 0,0,0 as black. or 1,1,1 as white. First part of preparation will be to convert to smaller more meaningful data.
 #https://stackoverflow.com/questions/18262293/how-to-open-every-file-in-a-folder
-for filename in glob.glob(os.path.join(pathSouorce,'*.png')):
-    current_image = image.imread(filename)
-    print(current_image)
-    print(current_image.dtype)
-    print(current_image.shape)
-    plt.imshow(current_image)
-    plt.show()
-    convert_to_simple = []
-    for row in current_image:
-        simple_row = []
-        for pixel in row:
-            if pixel[0] == 0:
-                simple_row.append(0) #black
-            else:
-                simple_row.append(1) #white
-        convert_to_simple.append(simple_row)
-    print(convert_to_simple)
-    current_image_simple = np.array(convert_to_simple)
-    print(current_image_simple.shape)
-    #at this point the np array is set to go for the algorithm.
-    
+
+#preparations
+images, labels = load_mnist(images_url,labels_url)
+train_images = images[:50000]/255.0 #normalize the images
+test_images = images[50000:]/255.0 #normalize the images
+
+for image in train_images:
+    converted_image = np.array(image)#convert to np.array object.
+    converted_image = np.ceil(converted_image)
+    converted_image = converted_image.reshape(-1,28)#reshape mnist image back into a matrix for conversion.
+    input(converted_image.shape)
+    input(str(converted_image))
     s1, s2 = [],[]
-    for row in current_image_simple:
+    for row in converted_image:
         #when encoding the images, we'll use a simple 1 -> 2x2 cipher.
         s1_row1 = []
         s1_row2 = []
