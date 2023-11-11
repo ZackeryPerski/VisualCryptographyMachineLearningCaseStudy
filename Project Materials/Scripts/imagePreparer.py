@@ -1,4 +1,3 @@
-import os, glob
 import random
 #from PIL import Image
 from matplotlib import image
@@ -7,17 +6,13 @@ import numpy as np
 import urllib.request
 import gzip
 import struct
-import json
+import pickle
+import threading
 
 
 np.random.seed(42)
 images_url = "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
 labels_url = "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
-
-#pathSouorce = '../Images/BW_Samples'
-#pathPrimeShares = '../Images/Prime Shares'
-#pathShares = '../Images/Shares'
-
 
     
 def load_mnist(images_url, labels_url):
@@ -226,20 +221,20 @@ for image in test_images:
 
 print("Dumping files. This will take some time.")
 
-with open('training_data.json','w', encoding='utf-8') as f1d:
-    json.dump(training_dict_data,f1d, ensure_ascii=False, indent=4)
+with open('training_data.pickle','wb') as handle:
+    pickle.dump(training_dict_data,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Training data successfully dumped.')
 
-with open('training_labels.json', 'w', encoding='utf-8') as f1l:
-    json.dump(training_dict_labels,f1l, ensure_ascii=False, indent=4)
+with open('training_labels.pickle', 'wb') as handle:
+    pickle.dump(training_dict_labels,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Training labels successfully dumped.')
 
-with open('testing_data.json','w',encoding='utf-8') as f2d:
-    json.dump(test_dict_data,f2d,ensure_ascii=False,indent=4)
+with open('testing_data.pickle','wb') as handle:
+    pickle.dump(test_dict_data,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Testing data successfully dumped.')
 
-with open('testing_labels.json', 'w', encoding='utf-8') as f2l:
-    json.dump(test_dict_labels,f2l, ensure_ascii=False, indent=4)
+with open('testing_labels.pickle', 'wb') as handle:
+    pickle.dump(test_dict_labels,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Testing labels successfully dumped.')
 
 print("All files dumped.")
