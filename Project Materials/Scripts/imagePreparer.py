@@ -213,7 +213,6 @@ t2.join()
 t3.join()
 t4.join()
 
-input("Threads cooking.")
 #at this point training images and labels have been produced.
 #time to create testing images and labels.
 imageCount = 0
@@ -241,7 +240,8 @@ for image in test_images:
         test_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
         test_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
         imageCount+=1
-    print(imageCount,"Images produced.")
+    if(imageCount%500==0):
+        print(imageCount,"Images produced.")
 
 print("Dumping files. This will take some time.")
 
