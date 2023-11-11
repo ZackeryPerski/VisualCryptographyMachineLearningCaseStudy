@@ -3,19 +3,23 @@ import json
 import matplotlib.pyplot as plt
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-
+print("Loading JSON Files. Some files are incredibly large and will take some time to load.")
 with open('training_data.json','r') as f:
     training_data = json.load(f)
+print("Loaded training_data.json")
 
 with open('training_labels.json','r') as f:
     training_labels = json.load(f)
+print("Loaded training_labels.json")
 
 with open('testing_data.json','r') as f:
     testing_data = json.load(f)
+print("Loaded testing_data.json")
 
 with open('testing_labels.json','r') as f:
     testing_labels = json.load(f)
-
+print("Loaded testing_labels.json")
+print("Loading complete.")
 
 training_data = np.array(list(training_data.values()))
 training_labels = np.array(list(training_labels.values()))
@@ -151,5 +155,5 @@ plt.plot(training_history) #history contains dictionaries for different types of
 plt.plot(evaluation_history)
 plt.xlabel('epoch',fontsize=20)
 plt.ylabel('accuracy',fontsize=20)
-plt.legend(['training loss','validation loss'])
+plt.legend(['training accuracy','validation accuracy'])
 plt.show()
