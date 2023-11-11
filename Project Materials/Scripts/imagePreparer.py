@@ -1,4 +1,3 @@
-import os, glob
 import random
 #from PIL import Image
 from matplotlib import image
@@ -7,17 +6,18 @@ import numpy as np
 import urllib.request
 import gzip
 import struct
-import json
+import pickle
+import threading
+import time
 
-
+imageCount = 0
 np.random.seed(42)
 images_url = "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
 labels_url = "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
-
-#pathSouorce = '../Images/BW_Samples'
-#pathPrimeShares = '../Images/Prime Shares'
-#pathShares = '../Images/Shares'
-
+training_dict_data = {}
+training_dict_labels = {}
+test_dict_data = {}
+test_dict_labels = {}
 
     
 def load_mnist(images_url, labels_url):
@@ -30,6 +30,15 @@ def load_mnist(images_url, labels_url):
         labels = np.frombuffer(f_labels_gzip.read(),dtype=np.uint8)
 
     return images,labels
+
+
+#preparations
+images, labels = load_mnist(images_url,labels_url)
+train_images = images[:50000]/255.0 #normalize the images
+test_images = images[50000:]/255.0 #normalize the images
+#
+split_image_set = np.array_split(train_images,5)
+
 
 def pattern_generator():
     pixels_top =    [(0,0),(1,1),(1,0),(0,1),(0,1),(1,0)]
@@ -141,60 +150,69 @@ def produce_s2_prime(image_share):
 #pixels are represented currently as RGB format with 0,0,0 as black. or 1,1,1 as white. First part of preparation will be to convert to smaller more meaningful data.
 #https://stackoverflow.com/questions/18262293/how-to-open-every-file-in-a-folder
 
-#preparations
-images, labels = load_mnist(images_url,labels_url)
-train_images = images[:50000]/255.0 #normalize the images
-test_images = images[50000:]/255.0 #normalize the images
+def produce_training_images(section):
+    global imageCount, training_dict_data, training_dict_labels, split_image_set
+    for image in split_image_set[section]:
+        converted_image = np.array(image)#convert to np.array object.
+        converted_image = np.ceil(converted_image)
+        converted_image = converted_image.reshape(-1,28)#reshape mnist image back into a matrix for conversion.
+        s1, s2 = produce_encrypted_shares(converted_image)
+        #S1,S2 generated. Time to create the S2' that hides S2. Not optimized, but ease over speed at the moment.
+        s2_prime, x_offset, y_offset = produce_s2_prime(s2)
+        
+        #create two samples for training. One valid overlay, one invalid.
+        valid_overlay, invalid_overlay = create_overlays(s2_prime, s1, x_offset, y_offset)
 
-imageCount = 0
-training_dict_data = {}
-training_dict_labels = {}
-test_dict_data = {}
-test_dict_labels = {}
+        #Used for showcasing what's being generated.
+        '''
+        plt.matshow(invalid_overlay)
+        plt.matshow(valid_overlay)
+        plt.show()
+        '''
 
+        #now that all manipulation is over, re-flatten the matrix.
+        valid_overlay = np.array(valid_overlay).flatten()
+        invalid_overlay = np.array(invalid_overlay).flatten()
+        #print("Shape of valid_overlay:",valid_overlay.shape)
+        #print("Shape of invalid_overlay:",invalid_overlay.shape)
+        #input()
 
-for image in train_images:
-    converted_image = np.array(image)#convert to np.array object.
-    converted_image = np.ceil(converted_image)
-    converted_image = converted_image.reshape(-1,28)#reshape mnist image back into a matrix for conversion.
-    s1, s2 = produce_encrypted_shares(converted_image)
-    #S1,S2 generated. Time to create the S2' that hides S2. Not optimized, but ease over speed at the moment.
-    s2_prime, x_offset, y_offset = produce_s2_prime(s2)
-    
-    #create two samples for training. One valid overlay, one invalid.
-    valid_overlay, invalid_overlay = create_overlays(s2_prime, s1, x_offset, y_offset)
+        #export json. Choose randomly if correct overlay or incorrect is saved first to prevent true/false patterning in the data.
+        if(np.random.randint(2)==0):
+            training_dict_data["image_"+str(imageCount)] = valid_overlay.tolist()
+            training_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
+            imageCount+=1
+            training_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
+            training_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
+            imageCount+=1
+        else:
+            training_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
+            training_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
+            imageCount+=1
+            training_dict_data["image_"+str(imageCount)] = valid_overlay.tolist()
+            training_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
+            imageCount+=1
+        if(imageCount%500==0):
+            print("Thread",section,":",imageCount,"Images produced.")
 
-    #Used for showcasing what's being generated.
-    '''
-    plt.matshow(invalid_overlay)
-    plt.matshow(valid_overlay)
-    plt.show()
-    '''
+#Attempting multi-threading approach.
+t0 = threading.Thread(target=produce_training_images,name="0",daemon=True,args=[0])
+t1 = threading.Thread(target=produce_training_images,name="1",daemon=True,args=[1])
+t2 = threading.Thread(target=produce_training_images,name="2",daemon=True,args=[2])
+t3 = threading.Thread(target=produce_training_images,name="3",daemon=True,args=[3])
+t4 = threading.Thread(target=produce_training_images,name="4",daemon=True,args=[4])
+t0.start()
+t1.start()
+t2.start()
+t3.start()
+t4.start()
+print("Threads launched.")
+t0.join()
+t1.join()
+t2.join()
+t3.join()
+t4.join()
 
-    #now that all manipulation is over, re-flatten the matrix.
-    valid_overlay = np.array(valid_overlay).flatten()
-    invalid_overlay = np.array(invalid_overlay).flatten()
-    #print("Shape of valid_overlay:",valid_overlay.shape)
-    #print("Shape of invalid_overlay:",invalid_overlay.shape)
-    #input()
-
-    #export json. Choose randomly if correct overlay or incorrect is saved first to prevent true/false patterning in the data.
-    if(np.random.randint(2)==0):
-        training_dict_data["image_"+str(imageCount)] = valid_overlay.tolist()
-        training_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
-        imageCount+=1
-        training_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
-        training_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
-        imageCount+=1
-    else:
-        training_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
-        training_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
-        imageCount+=1
-        training_dict_data["image_"+str(imageCount)] = valid_overlay.tolist()
-        training_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
-        imageCount+=1
-    print(imageCount,"Images produced.")
-    
 #at this point training images and labels have been produced.
 #time to create testing images and labels.
 imageCount = 0
@@ -222,24 +240,25 @@ for image in test_images:
         test_dict_data["image_"+str(imageCount)] = invalid_overlay.tolist()
         test_dict_labels["label_"+str(imageCount)] = [0,1] #hot encode false.
         imageCount+=1
-    print(imageCount,"Images produced.")
+    if(imageCount%500==0):
+        print(imageCount,"Images produced.")
 
 print("Dumping files. This will take some time.")
 
-with open('training_data.json','w', encoding='utf-8') as f1d:
-    json.dump(training_dict_data,f1d, ensure_ascii=False, indent=4)
+with open('training_data.pickle','wb') as handle:
+    pickle.dump(training_dict_data,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Training data successfully dumped.')
 
-with open('training_labels.json', 'w', encoding='utf-8') as f1l:
-    json.dump(training_dict_labels,f1l, ensure_ascii=False, indent=4)
+with open('training_labels.pickle', 'wb') as handle:
+    pickle.dump(training_dict_labels,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Training labels successfully dumped.')
 
-with open('testing_data.json','w',encoding='utf-8') as f2d:
-    json.dump(test_dict_data,f2d,ensure_ascii=False,indent=4)
+with open('testing_data.pickle','wb') as handle:
+    pickle.dump(test_dict_data,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Testing data successfully dumped.')
 
-with open('testing_labels.json', 'w', encoding='utf-8') as f2l:
-    json.dump(test_dict_labels,f2l, ensure_ascii=False, indent=4)
+with open('testing_labels.pickle', 'wb') as handle:
+    pickle.dump(test_dict_labels,handle,protocol=pickle.HIGHEST_PROTOCOL)
 print('Testing labels successfully dumped.')
 
 print("All files dumped.")
