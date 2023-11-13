@@ -37,7 +37,6 @@ images, labels = load_mnist(images_url,labels_url)
 train_images = images[:50000]/255.0 #normalize the images
 test_images = images[50000:]/255.0 #normalize the images
 #
-split_image_set = np.array_split(train_images,5)
 
 
 def pattern_generator():
@@ -150,9 +149,9 @@ def produce_s2_prime(image_share):
 #pixels are represented currently as RGB format with 0,0,0 as black. or 1,1,1 as white. First part of preparation will be to convert to smaller more meaningful data.
 #https://stackoverflow.com/questions/18262293/how-to-open-every-file-in-a-folder
 
-def produce_training_images(section):
-    global imageCount, training_dict_data, training_dict_labels, split_image_set
-    for image in split_image_set[section]:
+def produce_training_images():
+    global imageCount, training_dict_data, training_dict_labels, train_images
+    for image in train_images:
         converted_image = np.array(image)#convert to np.array object.
         converted_image = np.ceil(converted_image)
         converted_image = converted_image.reshape(-1,28)#reshape mnist image back into a matrix for conversion.
@@ -193,26 +192,10 @@ def produce_training_images(section):
             training_dict_labels["label_"+str(imageCount)] = [1,0] #hot encode true.
             imageCount+=1
         if(imageCount%500==0):
-            print("Thread",section,":",imageCount,"Images produced.")
+            print(imageCount,"Images produced.")
 
-#Attempting multi-threading approach.
-t0 = threading.Thread(target=produce_training_images,name="0",daemon=True,args=[0])
-t1 = threading.Thread(target=produce_training_images,name="1",daemon=True,args=[1])
-t2 = threading.Thread(target=produce_training_images,name="2",daemon=True,args=[2])
-t3 = threading.Thread(target=produce_training_images,name="3",daemon=True,args=[3])
-t4 = threading.Thread(target=produce_training_images,name="4",daemon=True,args=[4])
-t0.start()
-t1.start()
-t2.start()
-t3.start()
-t4.start()
-print("Threads launched.")
-t0.join()
-t1.join()
-t2.join()
-t3.join()
-t4.join()
 
+produce_training_images()
 #at this point training images and labels have been produced.
 #time to create testing images and labels.
 imageCount = 0
