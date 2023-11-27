@@ -4,12 +4,39 @@ import tensorflow as tf
 import tensorflow.keras as tfk
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+import pickle
 
 #keras built ontop of tensorflow.
+def loadData():
+    print("Loading Files. Some files are incredibly large and will take some time to load.")
+    with open('training_data.pickle','rb') as f:
+        training_data = pickle.load(f)
+    print("Loaded training_data.pickle")
 
-(train_data, train_label), (test_data, test_label) = tfk.datasets.fashion_mnist.load_data()
+    with open('training_labels.pickle','rb') as f:
+        training_labels = pickle.load(f)
+    print("Loaded training_labels.pickle")
 
-class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+    with open('testing_data.pickle','rb') as f:
+        testing_data = pickle.load(f)
+    print("Loaded testing_data.pickle")
+
+    with open('testing_labels.pickle','rb') as f:
+        testing_labels = pickle.load(f)
+    print("Loaded testing_labels.pickle")
+    print("Loading complete. Beginning conversion...")
+    training_data = np.array(list(training_data.values()))
+    training_labels = np.array(list(training_labels.values()))
+    testing_data = np.array(list(testing_data.values()))
+    testing_labels = np.array(list(testing_labels.values()))
+    print("Conversion completed.")
+    return (training_data,training_labels),(testing_data,testing_labels)
+
+
+
+(train_data, train_label), (test_data, test_label) = loadData()
+
+class_names = ['Visible','Not Visible']
 
 #visualization of data
 print(train_data.shape)
@@ -35,19 +62,22 @@ def plot_fashion_mnist_dataset(data, label, prediction, prediction_flag=False):
 #plot_fashion_mnist_dataset(train_data, train_label, None) #<- Uncomment me to see an example of the dataset visually.
 
 #Pre-processing.
+'''#Already done
 x_train = train_data/255 #converts to 0 or 1.
 x_test = test_data/255 
-
+'''
 #Expand the dimensions to work for cnn.
-x_train = np.expand_dims(x_train,-1)
-x_test = np.expand_dims(x_test,-1)
+x_train = np.expand_dims(train_data,-1)
+x_test = np.expand_dims(test_data,-1)
 
 #splitting training and validation sets.
+'''
 x_val, y_val = x_train[50000:,:], train_label[50000:] #validation
 x_train, y_train = x_train[:50000,:],  train_label[:50000] #training
-
+'''
 print(x_train.shape)
-
+print(x_test.shape)
+exit()
 #Defining the model.
 model = tfk.Sequential([
     #input layer

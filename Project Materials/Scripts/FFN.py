@@ -3,7 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-print("Loading JSON Files. Some files are incredibly large and will take some time to load.")
+print("Loading Files. Some files are incredibly large and will take some time to load.")
 with open('training_data.pickle','rb') as f:
     training_data = pickle.load(f)
 print("Loaded training_data.pickle")
