@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as tfk
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
 import seaborn as sns
 import pickle
 
@@ -67,16 +68,22 @@ x_train = train_data/255 #converts to 0 or 1.
 x_test = test_data/255 
 '''
 #Expand the dimensions to work for cnn.
-x_train = np.expand_dims(train_data,-1)
+x_train = np.expand_dims(train_data,-1) #not sure how much this expands by, something to check later.
 x_test = np.expand_dims(test_data,-1)
 
 #splitting training and validation sets.
-'''
-x_val, y_val = x_train[50000:,:], train_label[50000:] #validation
-x_train, y_train = x_train[:50000,:],  train_label[:50000] #training
-'''
-print(x_train.shape)
-print(x_test.shape)
+
+data_train, data_eval, label_train, label_eval = train_test_split(x_train,train_label, test_size=.2, random_state=1)
+
+#transpose our data.
+x_val = np.array(data_eval)
+y_val = np.array(label_eval)
+x_train = np.array(data_train)
+y_train = np.array(label_train)
+print("Eval Input shape:",x_val.shape)
+print("Eval Labels shape:",y_val.shape)
+print("Train Inputs shape:",x_train.shape)
+print("Train Labels shape:",y_train.shape)
 exit()
 #Defining the model.
 model = tfk.Sequential([
@@ -98,7 +105,7 @@ model = tfk.Sequential([
     #Neural Network portion...
     tfk.layers.Flatten(),
     tfk.layers.Dense(256,activation="relu",name="dense_1"), #issue on this line with cardinality.
-    tfk.layers.Dense(10,activation="softmax",name="dense_2"),  
+    tfk.layers.Dense(2,activation="softmax",name="dense_2"),  
 ])
 
 #training the model.
