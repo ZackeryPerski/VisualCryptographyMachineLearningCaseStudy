@@ -9,6 +9,7 @@ import pickle
 
 #keras built ontop of tensorflow.
 def loadData():
+    '''Important! You need to run the image preparer at least once before running this file!'''
     print("Loading Files. Some files are incredibly large and will take some time to load.")
     with open('training_data.pickle','rb') as f:
         training_data = pickle.load(f)
