@@ -26,10 +26,10 @@ def loadData():
         testing_labels = pickle.load(f)
     print("Loaded testing_labels.pickle")
     print("Loading complete. Beginning conversion...")
-    training_data = list(training_data.values())[0:100]
-    training_labels = list(training_labels.values())[0:100]
-    testing_data = list(testing_data.values())[0:100]
-    testing_labels = list(testing_labels.values())[0:100]
+    training_data = list(training_data.values())
+    training_labels = list(training_labels.values())
+    testing_data = list(testing_data.values())
+    testing_labels = list(testing_labels.values())
     print("Conversion completed.")
     return (training_data,training_labels),(testing_data,testing_labels)
 
@@ -76,6 +76,8 @@ def addRGBAndReshapeV2(data):
                     reshaped_data[row_count][y_pointer][x_pointer][1]=0
                     reshaped_data[row_count][y_pointer][x_pointer][2]=0
                 #Very gross, but, it will be a np.ndarray for sure!
+        print(row_count,"Images Processed")
+    print("Done.")
     return reshaped_data
 
 
@@ -134,6 +136,6 @@ plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.ylim([0.5, 1])
 plt.legend(loc='lower right')
-
+plt.show()
 test_loss, test_acc = model.evaluate(test_data,  test_label, verbose=2)
 print(test_acc)
