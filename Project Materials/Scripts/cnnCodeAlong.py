@@ -26,10 +26,10 @@ def loadData():
         testing_labels = pickle.load(f)
     print("Loaded testing_labels.pickle")
     print("Loading complete. Beginning conversion...")
-    training_data = list(training_data.values())#[0:20000]  #Limits data input. Much much faster without taking the whole set.
-    training_labels = list(training_labels.values())#[0:20000]
-    testing_data = list(testing_data.values())#[0:5000]
-    testing_labels = list(testing_labels.values())#[0:5000]
+    training_data = list(training_data.values())[0:2000]  #Limits data input. Much much faster without taking the whole set.
+    training_labels = list(training_labels.values())[0:2000]
+    testing_data = list(testing_data.values())[0:500]
+    testing_labels = list(testing_labels.values())[0:500]
     print("Conversion completed.")
     return (training_data,training_labels),(testing_data,testing_labels)
 
@@ -73,12 +73,13 @@ def showDataSample(data,labels,classes):
 (train_data, train_label), (test_data, test_label) = loadData()
 class_names = ['Not Visible','Visible']
 #Current shape we have is 70,70 per image. Ideally we'll want to have 70,70,3 for the shape. with the 3 representing the rgb colors for a given pixel.
-print("Re-adding color depth.")
+print("Re-adding color depth. Starting Training Images...")
 train_data = addRGBAndReshapeV2(train_data)
+print("\nTraining Images Processed. Starting Test Images...")
 test_data = addRGBAndReshapeV2(test_data)
 train_label = np.array(train_label)
 test_label = np.array(test_label)
-print("Done")
+print("\nDone")
 
 showDataSample(train_data,train_label,class_names)
 
