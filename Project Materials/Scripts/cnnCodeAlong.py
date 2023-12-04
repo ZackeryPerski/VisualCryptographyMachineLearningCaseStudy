@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as tfk
+from tensorflow.keras import datasets, layers, models
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 import seaborn as sns
@@ -26,118 +26,85 @@ def loadData():
         testing_labels = pickle.load(f)
     print("Loaded testing_labels.pickle")
     print("Loading complete. Beginning conversion...")
-    training_data = np.array(list(training_data.values()))
-    training_labels = np.array(list(training_labels.values()))
-    testing_data = np.array(list(testing_data.values()))
-    testing_labels = np.array(list(testing_labels.values()))
+    training_data = list(training_data.values())[0:100]
+    training_labels = list(training_labels.values())[0:100]
+    testing_data = list(testing_data.values())[0:100]
+    testing_labels = list(testing_labels.values())[0:100]
     print("Conversion completed.")
     return (training_data,training_labels),(testing_data,testing_labels)
 
+def addRGBAndReshape(data):
+    #inputs are pre-flattened. A row is 4900 pixels. there is 100,000 pictures to convert. (100000,4900)
+    rgb_data = np.empty(shape=(len(data),70,70,3))
+    count = 0
+    for row in data:
+        new_picture = np.empty(shape=(70,70,3)) #A single row is one picture.
+        for i in range(70):
+            picture_row = row[i*70:(i+1)*70]
+            current_row=np.empty(shape=(70,3))
+            for pixel in picture_row:
+                if pixel == 1:
+                    current_row = np.array[1,1,1]
+                    # current_row=np.concatenate(current_row,np.array([1,1,1]))
+                else:
+                    current_row = np.array[0,0,0]
+                    # current_row=np.concatenate(current_row,np.array([0,0,0]))
+            # new_picture.concatenate(np.array(current_row))
+            new_picture[i] = current_row
+        rgb_data = np.concatenate(np.array(new_picture))
+        count+=1
+        print(count,"Images Processed")
+    print("All Images Processed")
+    input(rgb_data.shape)
+    return np.array(rgb_data)
 
-
-(train_data, train_label), (test_data, test_label) = loadData()
-
-class_names = ['Visible','Not Visible']
-
-#visualization of data
-print(train_data.shape)
-print(train_label.shape)
-print(test_data.shape)
-print(test_label.shape)
-
-#printing function to make 'graphs' that generate the images.
-def plot_fashion_mnist_dataset(data, label, prediction, prediction_flag=False):
-    plt.figure(figsize=(15,15))
-    for it in range(16):
-        i = np.random.randint(len(data))
-        plt.subplot(4,4,it+1)
+def showDataSample(data,labels,classes):
+    #Show data loaded in! Borrowing example data display from tensorflow example. 
+    plt.figure(figsize=(10,10))
+    for i in range(25):
+        plt.subplot(5,5,i+1)
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        plt.imshow(data[i],cmap=plt.cm.binary)
-        plt.xlabel(f"Label: {class_names[label[i]]}\n")
-        if prediction_flag:
-            plt.title(f"\n Prediction: {class_names[prediction[i]]}")
+        plt.imshow(data[i]*255)#multiply by 255 to un-normalize the images.
+        # The CIFAR labels happen to be arrays, 
+        # which is why you need the extra index
+        plt.xlabel(classes[labels[i][0]])
     plt.show()
 
-#plot_fashion_mnist_dataset(train_data, train_label, None) #<- Uncomment me to see an example of the dataset visually.
+(train_data, train_label), (test_data, test_label) = loadData()
+class_names = ['Not Visible','Visible']
+#Current shape we have is 70,70 per image. Ideally we'll want to have 70,70,3 for the shape. with the 3 representing the rgb colors for a given pixel.
+print("Re-adding color depth.")
+train_data = addRGBAndReshape(train_data)
+test_data = addRGBAndReshape(test_data)
+print("Done")
 
-#Pre-processing.
-'''#Already done
-x_train = train_data/255 #converts to 0 or 1.
-x_test = test_data/255 
-'''
-#Expand the dimensions to work for cnn.
-x_train = np.expand_dims(train_data,-1) #not sure how much this expands by, something to check later.
-x_test = np.expand_dims(test_data,-1)
+#showDataSample(train_data,train_label,class_names)
 
-#splitting training and validation sets.
+model = models.Sequential()
+model.add(layers.Conv2D(70, (3, 3), activation='relu', input_shape=(70, 70, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(2))
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+model.summary()
 
-data_train, data_eval, label_train, label_eval = train_test_split(x_train,train_label, test_size=.2, random_state=1)
+history = model.fit(train_data, train_label, epochs=10, 
+                    validation_data=(test_data, test_label))
 
-#transpose our data.
-x_val = np.array(data_eval)
-y_val = np.array(label_eval)
-x_train = np.array(data_train)
-y_train = np.array(label_train)
-print("Eval Input shape:",x_val.shape)
-print("Eval Labels shape:",y_val.shape)
-print("Train Inputs shape:",x_train.shape)
-print("Train Labels shape:",y_train.shape)
-exit()
-#Defining the model.
-model = tfk.Sequential([
-    #input layer
-    tfk.Input(shape=x_train[0].shape, name="input"),
+plt.plot(history.history['accuracy'], label='accuracy')
+plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.ylim([0.5, 1])
+plt.legend(loc='lower right')
 
-    #First convolutional layer followed by max_pooling.
-    tfk.layers.Conv2D(32,(3,3),strides=1, activation='relu'),
-    tf.keras.layers.MaxPool2D(pool_size=(2,2)),
-
-    #Second convolutional layer, followed by max pooling.
-    tfk.layers.Conv2D(64,(3,3),strides=1, activation='relu'),
-    tf.keras.layers.MaxPool2D(pool_size=(2,2)),
-
-    #Third convolutional layer, followed by max pooling.
-    tfk.layers.Conv2D(128,(3,3),strides=1, activation='relu'),
-    tf.keras.layers.MaxPool2D(pool_size=(2,2)),
-
-    #Neural Network portion...
-    tfk.layers.Flatten(),
-    tfk.layers.Dense(256,activation="relu",name="dense_1"), #issue on this line with cardinality.
-    tfk.layers.Dense(2,activation="softmax",name="dense_2"),  
-])
-
-#training the model.
-#step 1. optimizer selection.
-optimizer = tfk.optimizers.Adam(learning_rate=0.001)
-
-#step 2. Choose metrics.
-metric = tfk.metrics.SparseCategoricalAccuracy() #standard on classification models gives a value of 1 for correct, 0 for incorrect.
-
-#step 3. loss function.
-loss_function = tfk.losses.SparseCategoricalCrossentropy() #
-
-#step 4. compile the network.
-model.compile(optimizer=optimizer, loss=loss_function, metrics=metric)
-
-#trains the model at this point, keeping track of stats utilizing the validation set
-history = model.fit(x_train, y_train, batch_size = 64, epochs=10, validation_data=(x_val,y_val),)
-
-
-#finally, plot how things went.
-plt.figure(figsize=(7,4),dpi=100)
-plt.plot(history.history['loss']) #history contains dictionaries for different types of data.
-plt.plot(history.history['val_loss'])
-plt.xlabel('epoch',fontsize=20)
-plt.ylabel('loss',fontsize=20)
-plt.legend(['training loss','validation loss'])
-plt.show()
-
-print("Evaluate on test data")
-results = model.evaluate(x_test, test_label, batch_size=128)
-print("test loss, test acc:",results)
-
-
-pred= model.predict(x_test).argmax(axis=1)
-plot_fashion_mnist_dataset(test_data, test_label, pred, prediction_flag=True)
+test_loss, test_acc = model.evaluate(test_data,  test_label, verbose=2)
+print(test_acc)
