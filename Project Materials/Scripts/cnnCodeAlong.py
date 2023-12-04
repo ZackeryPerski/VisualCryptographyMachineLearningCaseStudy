@@ -26,39 +26,16 @@ def loadData():
         testing_labels = pickle.load(f)
     print("Loaded testing_labels.pickle")
     print("Loading complete. Beginning conversion...")
-    training_data = list(training_data.values())
-    training_labels = list(training_labels.values())
-    testing_data = list(testing_data.values())
-    testing_labels = list(testing_labels.values())
+    training_data = list(training_data.values())#[0:20000]  #Limits data input. Much much faster without taking the whole set.
+    training_labels = list(training_labels.values())#[0:20000]
+    testing_data = list(testing_data.values())#[0:5000]
+    testing_labels = list(testing_labels.values())#[0:5000]
     print("Conversion completed.")
     return (training_data,training_labels),(testing_data,testing_labels)
 
-def addRGBAndReshape(data):
-    #inputs are pre-flattened. A row is 4900 pixels. there is 100,000 pictures to convert. (100000,4900)
-    rgb_data = np.empty(shape=(len(data),70,70,3))
-    count = 0
-    for row in data:
-        new_picture = np.empty(shape=(70,70,3)) #A single row is one picture.
-        for i in range(70):
-            picture_row = row[i*70:(i+1)*70]
-            current_row=np.empty(shape=(70,3))
-            for pixel in picture_row:
-                if pixel == 1:
-                    current_row = np.array[1,1,1]
-                    # current_row=np.concatenate(current_row,np.array([1,1,1]))
-                else:
-                    current_row = np.array[0,0,0]
-                    # current_row=np.concatenate(current_row,np.array([0,0,0]))
-            # new_picture.concatenate(np.array(current_row))
-            new_picture[i] = current_row
-        rgb_data = np.concatenate(np.array(new_picture))
-        count+=1
-        print(count,"Images Processed")
-    print("All Images Processed")
-    input(rgb_data.shape)
-    return np.array(rgb_data)
-
 def addRGBAndReshapeV2(data):
+    '''V1 Before deletion was a generative approach that eats more ram than you can imagine. This one does as well, but way more efficiently.
+    If you find that you're maxing out your RAM, limit the number of immages taken by uncommenting the list slicing done above in load data.'''
     reshaped_data = np.zeros(shape=(len(data),70,70,3),dtype=int)
     for row_count in range(len(data)):
         #A row is 4900 pixels.
@@ -68,7 +45,7 @@ def addRGBAndReshapeV2(data):
             for y_pointer in range(70):
                 #offset to get to section.
                 if(current_row[y_pointer*70+x_pointer]==1):
-                    reshaped_data[row_count][y_pointer][x_pointer][0]=1
+                    reshaped_data[row_count][y_pointer][x_pointer][0]=1 #apologies for confusing matrices, got them reversed.
                     reshaped_data[row_count][y_pointer][x_pointer][1]=1
                     reshaped_data[row_count][y_pointer][x_pointer][2]=1
                 else:
@@ -77,10 +54,7 @@ def addRGBAndReshapeV2(data):
                     reshaped_data[row_count][y_pointer][x_pointer][2]=0
                 #Very gross, but, it will be a np.ndarray for sure!
         print(row_count,"Images Processed")
-    print("Done.")
     return reshaped_data
-
-
 
 def showDataSample(data,labels,classes):
     #Show data loaded in! Borrowing example data display from tensorflow example. 
@@ -108,10 +82,6 @@ print("Done")
 
 showDataSample(train_data,train_label,class_names)
 
-singlePicture = train_data[0]
-input(singlePicture.shape)
-input(singlePicture)
-
 model = models.Sequential()
 model.add(layers.Conv2D(70, (3, 3), activation='relu', input_shape=(70, 70, 3)))
 model.add(layers.MaxPooling2D((2, 2)))
@@ -126,7 +96,7 @@ model.summary()
 
 history = model.fit(train_data, 
                     train_label, 
-                    epochs=10, 
+                    epochs=2, 
                     validation_data=(test_data, 
                                      test_label))
 
