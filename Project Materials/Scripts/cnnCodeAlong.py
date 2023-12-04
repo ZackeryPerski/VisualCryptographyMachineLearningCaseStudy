@@ -58,6 +58,28 @@ def addRGBAndReshape(data):
     input(rgb_data.shape)
     return np.array(rgb_data)
 
+def addRGBAndReshapeV2(data):
+    reshaped_data = np.zeros(shape=(len(data),70,70,3),dtype=int)
+    for row_count in range(len(data)):
+        #A row is 4900 pixels.
+        current_row = data[row_count]
+        for x_pointer in range(70):
+            #offset within section.
+            for y_pointer in range(70):
+                #offset to get to section.
+                if(current_row[y_pointer*70+x_pointer]==1):
+                    reshaped_data[row_count][y_pointer][x_pointer][0]=1
+                    reshaped_data[row_count][y_pointer][x_pointer][1]=1
+                    reshaped_data[row_count][y_pointer][x_pointer][2]=1
+                else:
+                    reshaped_data[row_count][y_pointer][x_pointer][0]=0
+                    reshaped_data[row_count][y_pointer][x_pointer][1]=0
+                    reshaped_data[row_count][y_pointer][x_pointer][2]=0
+                #Very gross, but, it will be a np.ndarray for sure!
+    return reshaped_data
+
+
+
 def showDataSample(data,labels,classes):
     #Show data loaded in! Borrowing example data display from tensorflow example. 
     plt.figure(figsize=(10,10))
@@ -76,28 +98,38 @@ def showDataSample(data,labels,classes):
 class_names = ['Not Visible','Visible']
 #Current shape we have is 70,70 per image. Ideally we'll want to have 70,70,3 for the shape. with the 3 representing the rgb colors for a given pixel.
 print("Re-adding color depth.")
-train_data = addRGBAndReshape(train_data)
-test_data = addRGBAndReshape(test_data)
+train_data = addRGBAndReshapeV2(train_data)
+test_data = addRGBAndReshapeV2(test_data)
+train_label = np.array(train_label)
+test_label = np.array(test_label)
 print("Done")
 
-#showDataSample(train_data,train_label,class_names)
+showDataSample(train_data,train_label,class_names)
+
+singlePicture = train_data[0]
+input(singlePicture.shape)
+input(singlePicture)
 
 model = models.Sequential()
 model.add(layers.Conv2D(70, (3, 3), activation='relu', input_shape=(70, 70, 3)))
 model.add(layers.MaxPooling2D((2, 2)))
-model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.Conv2D(64, (3, 3), activation='relu')) #here
 model.add(layers.MaxPooling2D((2, 2)))
 model.add(layers.Conv2D(64, (3, 3), activation='relu'))
 model.add(layers.Flatten())
 model.add(layers.Dense(64, activation='relu'))
 model.add(layers.Dense(2))
+print(model.output_shape)
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 model.summary()
 
-history = model.fit(train_data, train_label, epochs=10, 
-                    validation_data=(test_data, test_label))
+history = model.fit(train_data, 
+                    train_label, 
+                    epochs=10, 
+                    validation_data=(test_data, 
+                                     test_label))
 
 plt.plot(history.history['accuracy'], label='accuracy')
 plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
