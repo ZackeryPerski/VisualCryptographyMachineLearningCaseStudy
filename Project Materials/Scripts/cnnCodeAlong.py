@@ -53,7 +53,7 @@ def addRGBAndReshapeV2(data):
                     reshaped_data[row_count][y_pointer][x_pointer][1]=0
                     reshaped_data[row_count][y_pointer][x_pointer][2]=0
                 #Very gross, but, it will be a np.ndarray for sure!
-        print(row_count,"Images Processed")
+        print('Images Processed [%d/%d]\r'%(row_count,len(data)), end="")
     return reshaped_data
 
 def showDataSample(data,labels,classes):
