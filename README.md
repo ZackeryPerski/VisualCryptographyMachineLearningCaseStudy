@@ -1,6 +1,6 @@
 ## VisualCryptographyMachineLearningCaseStudy
-# What this is:
-This repository contains the project files to build and run a FFN and a CNN that is capable of classifying overlayed images that are utilizing a visual cryptography scheme. This is a binary classification scheme that essentially answers a yes or no question, that question being 'does the hidden image show up'?
+# What This Is:
+This repository contains the project files to build and run a FFN and a CNN that is capable of classifying overlayed images that are utilizing a visual cryptography scheme. These models utilize a binary classification scheme that essentially answers a yes or no question, that question being 'does the hidden image show up'?
 
 If you're not sure what visual cryptography is, here's a quick link: https://en.wikipedia.org/wiki/Visual_cryptography
 
