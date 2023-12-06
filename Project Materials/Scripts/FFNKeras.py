@@ -36,14 +36,10 @@ def loadData():
 
 (train_data, train_label), (test_data, test_label) = loadData()
 
-
-
 train_label = np.array(train_label)
 test_label = np.array(test_label)
 train_data = np.array(train_data)
 test_data = np.array(test_data)
-
-
 
 model = models.Sequential()
 model.add(layers.Dense(4900, activation='relu', input_shape=(4900,)))
