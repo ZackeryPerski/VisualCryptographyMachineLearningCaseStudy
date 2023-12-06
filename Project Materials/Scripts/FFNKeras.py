@@ -46,7 +46,7 @@ test_data = np.array(test_data)
 
 
 model = models.Sequential()
-model.add(layers.Dense(4900, activation='relu', input_shape=(1,4900)))
+model.add(layers.Dense(4900, activation='relu', input_shape=(4900,)))
 model.add(layers.Dense(64, activation='relu'))
 model.add(layers.Dense(32, activation='relu'))
 model.add(layers.Dense(2))
