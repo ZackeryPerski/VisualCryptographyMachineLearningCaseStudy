@@ -1,39 +1,21 @@
 import random
-#from PIL import Image
 from matplotlib import image
 from matplotlib import pyplot as plt
 import numpy as np
-import urllib.request
-import gzip
-import struct
 import pickle
-import threading
-import time
+import keras
+
 
 imageCount = 0
 np.random.seed(42)
-images_url = "http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
-labels_url = "http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"
 training_dict_data = {}
 training_dict_labels = {}
 test_dict_data = {}
 test_dict_labels = {}
 
-    
-def load_mnist(images_url, labels_url):
-    with urllib.request.urlopen(images_url) as f_images, gzip.GzipFile(fileobj=f_images) as f_images_gzip:
-        magic, num, rows, cols = struct.unpack(">IIII",f_images_gzip.read(16))
-        images = np.frombuffer(f_images_gzip.read(), dtype=np.uint8).reshape(num,784)
-
-    with urllib.request.urlopen(labels_url) as f_labels, gzip.GzipFile(fileobj=f_labels) as f_labels_gzip:
-        magic,num = struct.unpack(">II", f_labels_gzip.read(8))
-        labels = np.frombuffer(f_labels_gzip.read(),dtype=np.uint8)
-
-    return images,labels
-
 
 #preparations
-images, labels = load_mnist(images_url,labels_url)
+(images, labels), (test_images, test_labels) = keras.datasets.fashion_mnist.load_data()
 train_images = images[:50000]/255.0 #normalize the images
 test_images = images[50000:]/255.0 #normalize the images
 #

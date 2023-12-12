@@ -27,8 +27,8 @@ def loadData():
         testing_labels = pickle.load(f)
     print("Loaded testing_labels.pickle")
     print("Loading complete. Beginning conversion...")
-    training_data = list(training_data.values())[0:500]  #Limits data input. Much much faster without taking the whole set.
-    training_labels = list(training_labels.values())[0:500]
+    training_data = list(training_data.values())[0:2000]  #Limits data input. Much much faster without taking the whole set.
+    training_labels = list(training_labels.values())[0:2000]
     testing_data = list(testing_data.values())
     testing_labels = list(testing_labels.values())
     print("Conversion completed.")
