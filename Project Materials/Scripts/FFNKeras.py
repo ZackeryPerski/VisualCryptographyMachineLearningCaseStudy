@@ -29,8 +29,8 @@ def loadData():
     print("Loading complete. Beginning conversion...")
     training_data = list(training_data.values())[0:2000]  #Limits data input. Much much faster without taking the whole set.
     training_labels = list(training_labels.values())[0:2000]
-    testing_data = list(testing_data.values())[0:500]
-    testing_labels = list(testing_labels.values())[0:500]
+    testing_data = list(testing_data.values())
+    testing_labels = list(testing_labels.values())
     print("Conversion completed.")
     return (training_data,training_labels),(testing_data,testing_labels)
 
